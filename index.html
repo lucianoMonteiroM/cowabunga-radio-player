@@ -148,20 +148,22 @@
         <div class="np-track" id="np-track">Nenhuma faixa selecionada</div>
         <div class="np-album" id="np-album">Abra o menu e escolha um álbum</div>
       </div>
-      <div class="eq-status" id="eq-status"></div>
       <div class="np-time" id="np-time">—</div>
-      <button class="btn" id="btn-eq" title="Equalizer (E)">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <rect x="3"  y="10" width="2" height="10" rx="1"/>
-          <rect x="3"  y="7"  width="2" height="2"  rx="1" opacity=".4"/>
-          <rect x="8"  y="6"  width="2" height="14" rx="1"/>
-          <rect x="8"  y="3"  width="2" height="2"  rx="1" opacity=".4"/>
-          <rect x="13" y="11" width="2" height="9"  rx="1"/>
-          <rect x="13" y="8"  width="2" height="2"  rx="1" opacity=".4"/>
-          <rect x="18" y="7"  width="2" height="13" rx="1"/>
-          <rect x="18" y="4"  width="2" height="2"  rx="1" opacity=".4"/>
-        </svg>
-      </button>
+      <div class="eq-btn-wrap">
+        <button class="btn" id="btn-eq" title="Equalizer (E)">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3"  y="10" width="2" height="10" rx="1"/>
+            <rect x="3"  y="7"  width="2" height="2"  rx="1" opacity=".4"/>
+            <rect x="8"  y="6"  width="2" height="14" rx="1"/>
+            <rect x="8"  y="3"  width="2" height="2"  rx="1" opacity=".4"/>
+            <rect x="13" y="11" width="2" height="9"  rx="1"/>
+            <rect x="13" y="8"  width="2" height="2"  rx="1" opacity=".4"/>
+            <rect x="18" y="7"  width="2" height="13" rx="1"/>
+            <rect x="18" y="4"  width="2" height="2"  rx="1" opacity=".4"/>
+          </svg>
+        </button>
+        <div class="eq-status" id="eq-status">Flat</div>
+      </div>
       <div class="vol-grp">
         <span class="vol-icon">🔈</span>
         <input type="range" class="vol-slider" id="vol-slider" min="0" max="1" step="0.02" value="0.85">

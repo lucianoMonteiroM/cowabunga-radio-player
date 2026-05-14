@@ -25,7 +25,7 @@ let likedAlbums = new Set(JSON.parse(localStorage.getItem('liked_albums') || '[]
 /* ── Web Audio ───────────────────────────────────────────── */
 let actx = null, srcNode = null, hpfNode = null;
 let eqFilters = [], compNode = null, masterGain = null, analyserNode = null;
-let compEnabled = false, eqOpen = false, animFrameId = null, currentPreset = 'flat';
+let compEnabled = false, eqOpen = false, animFrameId = null, currentPreset = 'flat', currentHpf = 20;
 
 const EQ_BANDS = [
   { freq: 80,    type: 'lowshelf',  label: '80Hz',   sub: 'Bass'     },
@@ -163,6 +163,41 @@ function initAudio() {
   } catch(e) { console.warn('[WebAudio]', e.message); actx=null; }
 }
 function setEqGain(i,g) { if(eqFilters[i]&&actx) eqFilters[i].gain.setTargetAtTime(g,actx.currentTime,0.008); }
+function saveEqConfig() {
+  const gains = EQ_BANDS.map((_,i) => { const sl=$(`eq-${i}`); return sl ? +sl.value : 0; });
+  localStorage.setItem('eq_config', JSON.stringify({
+    preset: currentPreset, gains, hpf: currentHpf,
+    compEnabled, compThreshold: +($('comp-threshold')?.value??-24), compRatio: +($('comp-ratio')?.value??4),
+  }));
+}
+function loadEqConfig() {
+  const raw = localStorage.getItem('eq_config'); if(!raw) return;
+  try {
+    const cfg = JSON.parse(raw);
+    (cfg.gains||[]).forEach((g,i) => {
+      const sl=$(`eq-${i}`), vl=$(`eqval-${i}`);
+      if(sl) sl.value=g; if(vl) vl.textContent=(g>=0?'+':'')+g+' dB';
+      if(actx) setEqGain(i,g);
+    });
+    currentHpf = cfg.hpf??20;
+    if(hpfNode&&actx) hpfNode.frequency.setTargetAtTime(currentHpf,actx.currentTime,0.01);
+    compEnabled = cfg.compEnabled??false;
+    const ct=$('comp-toggle');
+    if(ct){ct.classList.toggle('on',compEnabled);ct.textContent=compEnabled?'ON':'OFF';}
+    const thr=cfg.compThreshold??-24, rat=cfg.compRatio??4;
+    const ts=$('comp-threshold'),tv=$('comp-thr-val');
+    if(ts) ts.value=thr; if(tv) tv.textContent=thr+' dB';
+    const rs=$('comp-ratio'),rv=$('comp-ratio-val');
+    if(rs) rs.value=rat; if(rv) rv.textContent=rat+' : 1';
+    if(compNode&&actx){
+      compNode.threshold.setTargetAtTime(thr,actx.currentTime,0.01);
+      compNode.ratio.setTargetAtTime(compEnabled?rat:1,actx.currentTime,0.01);
+    }
+    currentPreset = cfg.preset||'flat';
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.toggle('active',b.dataset.preset===currentPreset));
+    updateEqStatus();
+  } catch(e){ console.warn('[EQ restore]',e); }
+}
 function applyPreset(key) {
   const p = PRESETS[key]; if(!p) return;
   currentPreset = key;
@@ -171,6 +206,7 @@ function applyPreset(key) {
     if(sl) sl.value=g; if(vl) vl.textContent=(g>=0?'+':'')+g+' dB';
     if(actx) setEqGain(i,g);
   });
+  currentHpf=p.hpf;
   if(hpfNode&&actx) hpfNode.frequency.setTargetAtTime(p.hpf,actx.currentTime,0.01);
   compEnabled=p.comp;
   if(compNode&&actx) {
@@ -184,12 +220,11 @@ function applyPreset(key) {
   const rs=$('comp-ratio'),rv=$('comp-ratio-val');
   if(rs) rs.value=p.ratio; if(rv) rv.textContent=p.ratio+' : 1';
   document.querySelectorAll('.preset-btn').forEach(b=>b.classList.toggle('active',b.dataset.preset===key));
-  updateEqStatus();
+  updateEqStatus(); saveEqConfig();
 }
 function updateEqStatus() {
   const st=$('eq-status'); if(!st) return;
-  if(currentPreset==='flat'){ st.textContent=''; st.classList.remove('vis'); }
-  else { st.textContent=PRESETS[currentPreset]?.label||''; st.classList.add('vis'); }
+  st.textContent = currentPreset==='custom' ? 'Custom' : (PRESETS[currentPreset]?.label||'Flat');
 }
 function drawSpectrum() {
   if(!analyserNode||!eqOpen||isMobile()) return;
@@ -223,8 +258,9 @@ function renderEqBands() {
     const vl=$(`eqval-${i}`); if(vl) vl.textContent=(g>=0?'+':'')+g+' dB';
     if(actx) setEqGain(i,g);
     document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
-    currentPreset='custom'; updateEqStatus();
+    currentPreset='custom'; updateEqStatus(); saveEqConfig();
   });
+  loadEqConfig();
 }
 function toggleEqPanel() {
   eqOpen=!eqOpen;
@@ -237,19 +273,21 @@ $('comp-toggle').addEventListener('click',()=>{
   compEnabled=!compEnabled;
   const btn=$('comp-toggle'); btn.classList.toggle('on',compEnabled); btn.textContent=compEnabled?'ON':'OFF';
   if(compNode&&actx) compNode.ratio.setTargetAtTime(compEnabled?parseFloat($('comp-ratio').value):1,actx.currentTime,0.01);
+  saveEqConfig();
 });
 $('comp-threshold').addEventListener('input',function(){
   $('comp-thr-val').textContent=this.value+' dB';
   if(compNode&&actx) compNode.threshold.setTargetAtTime(+this.value,actx.currentTime,0.01);
-  currentPreset='custom'; updateEqStatus();
+  currentPreset='custom'; updateEqStatus(); saveEqConfig();
 });
 $('comp-ratio').addEventListener('input',function(){
   $('comp-ratio-val').textContent=this.value+' : 1';
   if(compNode&&actx&&compEnabled) compNode.ratio.setTargetAtTime(+this.value,actx.currentTime,0.01);
-  currentPreset='custom'; updateEqStatus();
+  currentPreset='custom'; updateEqStatus(); saveEqConfig();
 });
 $('eq-presets').addEventListener('click',e=>{ const b=e.target.closest('.preset-btn'); if(b){initAudio();applyPreset(b.dataset.preset);} });
 $('btn-eq').addEventListener('click',toggleEqPanel);
+loadEqConfig();
 
 /* ── Bootstrap ───────────────────────────────────────────── */
 async function init() {
