@@ -536,8 +536,8 @@ window.addEventListener('resize', () => {
   }
 
   function schedule() {
-    clearInterval(timer);
-    timer = setInterval(runSlide, 3000);
+    clearTimeout(timer);
+    timer = setTimeout(runSlide, 400);
   }
 
   schedule();

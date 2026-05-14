@@ -165,12 +165,13 @@ body { display: flex; flex-direction: column; }
 .lib-name { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 @keyframes lib-name-slide {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(var(--lib-name-slide-dist, 0px)); }
+  0%,  12% { transform: translateX(0); }
+  42%, 58% { transform: translateX(var(--lib-name-slide-dist, 0px)); }
+  88%, 100% { transform: translateX(0); }
 }
 #lib-title-text { display: inline-block; }
 #lib-title-text.sliding {
-  animation: lib-name-slide 2s ease-in-out forwards;
+  animation: lib-name-slide 5s ease-in-out infinite;
 }
 .lib-id   { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-lo); }
 .ext-link {
@@ -502,67 +503,74 @@ body { display: flex; flex-direction: column; }
   .track-fmt { display: none; }
   .track-row { grid-template-columns: 32px 1fr 58px; padding: 12px 14px 12px 12px; }
 
-  .eq-panel.open { height: auto; max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .eq-inner { height: auto; }
+  .eq-panel.open { height: auto; max-height: 60vh; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .eq-inner { height: auto; min-width: 0; width: 100%; }
   #eq-canvas { display: none; }
   .eq-bottom { flex-direction: column; gap: 8px; }
 
-  .eq-bands { flex-direction: column; gap: 2px; width: 100%; }
-  .eq-band  { flex-direction: row; align-items: center; gap: 8px; width: 100%; }
+  .eq-bands { flex-direction: column; gap: 2px; width: 100%; min-width: 0; }
+  .eq-band  { flex-direction: row; align-items: center; gap: 8px; width: 100%; min-width: 0; }
   .eq-slider-wrap {
-    height: auto; width: auto; flex: 1; display: block; position: static;
+    height: auto; width: auto; flex: 1; min-width: 0; display: block; position: static;
   }
   .eq-slider-wrap::before, .eq-slider-wrap::after { display: none; }
   .eq-slider {
-    transform: none; width: 100%; display: block; height: 4px;
+    transform: none; width: 100%; min-width: 0; display: block; height: 4px;
     background: var(--border-med); border-radius: 99px;
   }
   .eq-slider::-webkit-slider-thumb { margin-top: -5px; }
   .eq-val  { min-width: 46px; text-align: right; font-size: 10px; order: 3; }
-  .eq-freq { width: 64px; text-align: left; flex-shrink: 0; font-size: 11px; }
+  .eq-freq { width: 56px; text-align: left; flex-shrink: 0; font-size: 11px; }
   .eq-freq small { display: none; }
 
   .eq-comp { width: 100%; }
 
-  :root { --player-h: 108px; }
+  :root { --player-h: auto; }
 
+  /* Título sem ellipsis para a animação de scroll ser visível */
+  .lib-name { text-overflow: clip; }
+
+  /* Grid de 3 linhas — play sempre centralizado:
+     Linha 1: [capa] [título + álbum]  [tempo]
+     Linha 2:        [← ▶ →]           (span 1/-1, justify-content: center)
+     Linha 3: [EQ]   [           ]     [🔈───]
+     Coluna 3 fixada em 88px para o vol-grp nunca colapsar */
   .player-main {
-    flex-wrap: wrap;
-    padding: 6px 10px;
-    align-content: center;
+    display: grid;
+    grid-template-columns: auto 1fr 88px;
+    grid-template-rows: auto auto auto;
     column-gap: 8px;
-    row-gap: 2px;
+    row-gap: 3px;
+    padding: 7px 10px 8px;
+    align-items: center;
   }
 
-  .cover-ph, .player-cover { order: 1; width: 38px; height: 38px; font-size: 14px; }
-  .now-playing  { order: 2; flex: 1; min-width: 0; }
-  .np-time      { order: 3; font-size: 10px; flex-shrink: 0; }
+  .cover-ph, .player-cover { grid-row: 1; grid-column: 1; width: 36px; height: 36px; font-size: 14px; }
+  .now-playing { grid-row: 1; grid-column: 2; }
+  .np-time     { grid-row: 1; grid-column: 3; font-size: 10px; white-space: nowrap; }
 
-  .eq-status {
-    order: 4;
-    flex-basis: 100%;
-    height: 0;
-    display: block !important;
-    opacity: 0;
-    margin: 0;
-    pointer-events: none;
-  }
+  .eq-status { display: none !important; }
 
-  .ctrl-grp { order: 5; flex: 1; justify-content: center; }
-  #btn-eq   { order: 6; }
-  .vol-grp  { order: 7; display: flex !important; gap: 5px; }
-  .vol-slider { width: 72px; }
+  .ctrl-grp { grid-row: 2; grid-column: 1 / -1; justify-content: center; }
 
-  .btn { width: 40px; height: 40px; }
-  .btn-play { width: 44px; height: 44px; }
+  #btn-eq   { grid-row: 3; grid-column: 1; }
+  .vol-grp  { grid-row: 3; grid-column: 3; display: flex !important; align-items: center; gap: 5px; }
+  .vol-slider { width: 70px; }
+
+  .btn { width: 38px; height: 38px; }
+  .btn-play { width: 42px; height: 42px; }
 }
 
-/* Very small phones */
+/* Very small phones (≤360px) */
 @media (max-width: 360px) {
+  .player-main { grid-template-columns: auto 1fr 72px; }
   .cover-ph,
-  .player-cover { width: 38px; height: 38px; }
+  .player-cover { width: 32px; height: 32px; }
   .ctrl-grp { gap: 0; }
   .np-time { display: none; }
+  .vol-slider { width: 55px; }
+  .btn { width: 34px; height: 34px; }
+  .btn-play { width: 38px; height: 38px; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -572,6 +580,7 @@ body { display: flex; flex-direction: column; }
   :root {
     --sidebar-w: 250px;
     --topbar-h:  50px;
+    --player-h:  auto;
   }
 
   .radio-header { height: 104px; padding: 0 18px; }
@@ -580,7 +589,25 @@ body { display: flex; flex-direction: column; }
   .panel-cover-ph,
   .panel-cover-img { width: 72px; height: 72px; }
 
-  .vol-slider { width: 60px; }
+  /* Play sempre centralizado no tablet */
+  .player-main {
+    display: grid;
+    grid-template-columns: auto 1fr 100px;
+    grid-template-rows: auto auto auto;
+    column-gap: 10px;
+    row-gap: 3px;
+    padding: 7px 14px 9px;
+    align-items: center;
+  }
+
+  .cover-ph, .player-cover { grid-row: 1; grid-column: 1; }
+  .now-playing { grid-row: 1; grid-column: 2; }
+  .np-time     { grid-row: 1; grid-column: 3; }
+  .eq-status   { display: none !important; }
+  .ctrl-grp    { grid-row: 2; grid-column: 1 / -1; justify-content: center; }
+  #btn-eq      { grid-row: 3; grid-column: 1; }
+  .vol-grp     { grid-row: 3; grid-column: 3; display: flex !important; align-items: center; }
+  .vol-slider  { width: 80px; }
 }
 
 /* ═══════════════════════════════════════════════════════════
