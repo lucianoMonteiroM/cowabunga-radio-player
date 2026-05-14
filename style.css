@@ -229,6 +229,34 @@ body { display: flex; flex-direction: column; }
 .clear-btn:hover { color: var(--text-md); }
 .clear-btn.vis { display: block; }
 
+/* ── Liked section ─────────────────────────────────────── */
+.liked-section { border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.liked-hdr {
+  display: flex; align-items: center; gap: 7px; padding: 10px 13px;
+  cursor: pointer; user-select: none; transition: background .1s;
+}
+.liked-hdr:hover { background: var(--hover); }
+.liked-hdr-label { font-size: 9px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--text-lo); flex: 1; }
+.liked-hdr-count { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent); }
+.liked-section.open .liked-hdr .artist-chevron { transform: rotate(90deg); }
+.liked-list { display: none; overflow-y: auto; max-height: 220px; -webkit-overflow-scrolling: touch; }
+.liked-section.open .liked-list { display: block; }
+.liked-empty { padding: 8px 13px 8px 24px; font-size: 11px; color: var(--text-lo); font-style: italic; }
+
+/* ── Like button ───────────────────────────────────────── */
+.btn-like {
+  width: 22px; height: 22px; border: none; background: transparent;
+  color: var(--text-lo); cursor: pointer; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; padding: 0; transition: color .15s, transform .12s, opacity .15s;
+  opacity: 0;
+}
+.album-item:hover .btn-like,
+.btn-like.liked { opacity: 1; }
+.btn-like:hover { color: var(--accent); transform: scale(1.15); }
+.btn-like.liked { color: var(--accent); }
+.btn-like svg { width: 18px; height: 18px; pointer-events: none; }
+
 .artist-list { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
 .artist-group { border-bottom: 1px solid var(--border); }
 .artist-hdr {

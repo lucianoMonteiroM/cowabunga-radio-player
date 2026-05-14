@@ -19,6 +19,8 @@ const $     = id => document.getElementById(id);
 /* ── State ───────────────────────────────────────────────── */
 let allAlbums = [], filtered = [], tracks = [];
 let albumIdx = -1, trackIdx = -1, expanded = {};
+const coverCache = new Set();
+let likedAlbums = new Set(JSON.parse(localStorage.getItem('liked_albums') || '[]'));
 
 /* ── Web Audio ───────────────────────────────────────────── */
 let actx = null, srcNode = null, hpfNode = null;
@@ -65,6 +67,59 @@ function isAudio(f) {
 const isMobile  = () => window.innerWidth <= 767;
 const isTablet  = () => window.innerWidth >= 768 && window.innerWidth <= 1023;
 const isDesktop = () => window.innerWidth >= 1024;
+
+/* ── Liked albums ────────────────────────────────────────── */
+function saveLiked() {
+  localStorage.setItem('liked_albums', JSON.stringify([...likedAlbums]));
+}
+function toggleLiked(identifier) {
+  if (likedAlbums.has(identifier)) {
+    likedAlbums.delete(identifier);
+  } else {
+    likedAlbums.add(identifier);
+    $('liked-section').classList.add('open');
+  }
+  saveLiked();
+  renderLikedSection();
+  document.querySelectorAll('#artist-list .btn-like').forEach(btn => {
+    if (btn.dataset.id === identifier) btn.classList.toggle('liked', likedAlbums.has(identifier));
+  });
+}
+function renderLikedSection() {
+  const list = $('liked-list'), countEl = $('liked-count');
+  if (!list) return;
+  const validLiked = [...likedAlbums].map(id => allAlbums.find(a => a.identifier === id)).filter(Boolean);
+  countEl.textContent = validLiked.length || '';
+  if (!validLiked.length) {
+    list.innerHTML = `<div class="liked-empty">Nenhum álbum curtido</div>`;
+    return;
+  }
+  list.innerHTML = validLiked.map(a => {
+    const ri = allAlbums.indexOf(a);
+    return `
+      <div class="album-item${ri===albumIdx?' active':''}" data-real="${ri}" tabindex="0" role="button">
+        <div class="album-thumb-ph">♪</div>
+        <img class="album-thumb" loading="lazy" src="${coverURL(a.identifier)}" alt=""
+             onerror="this.style.display='none';this.previousElementSibling.style.display='flex'"
+             onload="this.previousElementSibling.style.display='none'">
+        <div class="album-info">
+          <div class="album-name">${esc(a.title)}</div>
+          <div class="album-date">${a.date||'—'}</div>
+        </div>
+        <button class="btn-like liked" data-id="${esc(a.identifier)}" aria-label="Remover dos curtidos" title="Remover dos curtidos">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>`;
+  }).join('');
+}
+$('liked-hdr').addEventListener('click', () => $('liked-section').classList.toggle('open'));
+$('liked-list').addEventListener('click', e => {
+  const btn = e.target.closest('.btn-like');
+  if (btn) { e.stopPropagation(); toggleLiked(btn.dataset.id); return; }
+  const item = e.target.closest('.album-item');
+  if (item) selectAlbum(+item.dataset.real);
+});
+if (likedAlbums.size > 0) $('liked-section').classList.add('open');
 
 /* ── Sidebar drawer (mobile) ─────────────────────────────── */
 function openSidebar()  {
@@ -234,8 +289,9 @@ async function init() {
     }
     filtered=[...allAlbums];
     const groups=groupByArtist(allAlbums);
-    groups.forEach(([k],i)=>{ expanded[k]=groups.length<=5||i===0; });
+    groups.forEach(([k])=>{ expanded[k]=false; });
     renderSidebar();
+    renderLikedSection();
     if(allAlbums.length===1) selectAlbum(0);
   } catch(e) {
     $('artist-list').innerHTML=`<div class="state" style="padding:2rem"><div class="state-icon">⚠</div><div>Erro ao carregar<br><small>${esc(e.message)}</small></div></div>`;
@@ -248,6 +304,14 @@ function groupByArtist(albums) {
   albums.forEach(a=>{ const k=(a.creator||'Desconhecido').trim(); if(!map[k])map[k]=[]; map[k].push(a); });
   Object.values(map).forEach(arr=>arr.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')||a.title.localeCompare(b.title)));
   return Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0],undefined,{sensitivity:'base'}));
+}
+
+/* ── Cover cache helpers ─────────────────────────────────── */
+function preloadCover(id) {
+  if (coverCache.has(id)) return;
+  const img = new Image();
+  img.onload = () => coverCache.add(id);
+  img.src = coverURL(id);
 }
 
 /* ── Preload group covers before opening ─────────────────── */
@@ -276,7 +340,8 @@ function preloadAndOpen(groupEl, artist) {
     const ri = +item.dataset.real;
     if (isNaN(ri) || ri < 0 || ri >= allAlbums.length) { if (++done >= total) open(); return; }
     const img = new Image();
-    img.onload = img.onerror = () => { if (++done >= total) open(); };
+    img.onload = () => { coverCache.add(allAlbums[ri].identifier); if (++done >= total) open(); };
+    img.onerror = () => { if (++done >= total) open(); };
     img.src = coverURL(allAlbums[ri].identifier);
   });
 }
@@ -287,9 +352,10 @@ function renderSidebar() {
   $('album-count').textContent=filtered.length===allAlbums.length?`${allAlbums.length} álbuns`:`${filtered.length} de ${allAlbums.length}`;
   if(!groups.length){ $('artist-list').innerHTML=`<div class="state" style="padding:2rem;font-size:12px">Nenhum resultado</div>`; return; }
   $('artist-list').innerHTML=groups.map(([artist,albums])=>{
-    const isOpen=expanded[artist]!==false;
+    const isOpen=expanded[artist]===true;
     const albHtml=albums.map(a=>{
       const ri=allAlbums.indexOf(a);
+      const isLiked=likedAlbums.has(a.identifier);
       return `
         <div class="album-item${ri===albumIdx?' active':''}" data-real="${ri}" tabindex="0" role="button">
           <div class="album-thumb-ph">♪</div>
@@ -300,6 +366,9 @@ function renderSidebar() {
             <div class="album-name">${esc(a.title)}</div>
             <div class="album-date">${a.date||'—'}</div>
           </div>
+          <button class="btn-like${isLiked?' liked':''}" data-id="${esc(a.identifier)}" aria-label="${isLiked?'Remover dos curtidos':'Curtir álbum'}" title="${isLiked?'Remover dos curtidos':'Adicionar aos curtidos'}">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
         </div>`;
     }).join('');
     return `
@@ -313,11 +382,18 @@ function renderSidebar() {
       </div>`;
   }).join('');
   $('artist-list').onclick=e=>{
+    const likeBtn=e.target.closest('.btn-like');
+    if(likeBtn){e.stopPropagation();toggleLiked(likeBtn.dataset.id);return;}
     const hdr=e.target.closest('.artist-hdr');
     if(hdr){
       const g=hdr.closest('.artist-group'),k=g.dataset.artist;
       if(g.classList.contains('open')){ expanded[k]=false; g.classList.remove('open'); }
-      else { preloadAndOpen(g,k); }
+      else {
+        document.querySelectorAll('#artist-list .artist-group.open').forEach(el=>{
+          expanded[el.dataset.artist]=false; el.classList.remove('open');
+        });
+        preloadAndOpen(g,k);
+      }
       return;
     }
     const item=e.target.closest('.album-item');
@@ -391,9 +467,14 @@ async function selectAlbum(idx) {
 
 function loadCover(id) {
   const img=$('player-cover'), ph=$('cover-ph');
+  if (coverCache.has(id)) {
+    img.src=coverURL(id);
+    img.classList.remove('hidden'); ph.style.display='none';
+    return;
+  }
   img.classList.add('hidden'); ph.style.display='flex';
-  img.onload=()=>{img.classList.remove('hidden');ph.style.display='none';};
-  img.onerror=()=>{img.classList.add('hidden');ph.style.display='flex';};
+  img.onload=()=>{ coverCache.add(id); img.classList.remove('hidden'); ph.style.display='none'; };
+  img.onerror=()=>{ img.classList.add('hidden'); ph.style.display='flex'; };
   img.src=coverURL(id);
 }
 
@@ -421,8 +502,15 @@ function renderPanel(album,list) {
         :list.map(trackRow).join('')}
     </div>`;
   const pci=$('pcov-img'), pcp=$('pcov-ph');
-  if(pci){ pci.onload=()=>{pci.style.display='block';pcp.style.display='none';};
-    pci.onerror=()=>{pci.style.display='none';pcp.style.display='flex';}; pci.src=coverURL(covId); }
+  if(pci){
+    if (coverCache.has(covId)) {
+      pci.src=coverURL(covId); pci.style.display='block'; pcp.style.display='none';
+    } else {
+      pci.onload=()=>{ coverCache.add(covId); pci.style.display='block'; pcp.style.display='none'; };
+      pci.onerror=()=>{ pci.style.display='none'; pcp.style.display='flex'; };
+      pci.src=coverURL(covId);
+    }
+  }
   $('track-list').onclick=e=>{const r=e.target.closest('.track-row');if(r)playTrack(+r.dataset.i);};
   $('track-list').onkeydown=e=>{if(e.key==='Enter'){const r=e.target.closest('.track-row');if(r)playTrack(+r.dataset.i);}};
 }
@@ -555,6 +643,16 @@ window.addEventListener('resize', () => {
 
   new MutationObserver(schedule).observe(inner, { childList: true, characterData: true, subtree: true });
 })();
+
+/* ── Hover preload ───────────────────────────────────────── */
+function onAlbumHover(e) {
+  const item = e.target.closest('.album-item');
+  if (!item) return;
+  const ri = +item.dataset.real;
+  if (!isNaN(ri) && allAlbums[ri]) preloadCover(allAlbums[ri].identifier);
+}
+$('artist-list').addEventListener('mouseover', onAlbumHover, { passive: true });
+$('liked-list').addEventListener('mouseover', onAlbumHover, { passive: true });
 
 /* ── Go ──────────────────────────────────────────────────── */
 init();
