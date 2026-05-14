@@ -19,6 +19,18 @@
   --topbar-h:    50px;
   --player-h:    78px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --space-xs:    4px;
+  --space-sm:    8px;
+  --space-md:    16px;
+  --space-lg:    24px;
+  --space-xl:    40px;
+  --font-title:  'Playfair Display', serif;
+  --font-body:   'DM Sans', sans-serif;
+  --font-mono:   'DM Mono', monospace;
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
 }
 
 html, body {
@@ -116,6 +128,8 @@ body { display: flex; flex-direction: column; }
 }
 @media (max-width: 400px) {
   .rh-sub { display: none; }
+  .ext-link-text { display: none; }
+  .ext-link { padding: 6px; border-radius: 8px; }
 }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -462,11 +476,6 @@ body { display: flex; flex-direction: column; }
 
   .btn-menu { display: flex; }
 
-  @media (max-width: 400px) {
-    .ext-link-text { display: none; }
-    .ext-link { padding: 6px; border-radius: 8px; }
-  }
-
   .sidebar {
     position: fixed; left: 0; top: 0; bottom: 0;
     width: min(82vw, 320px);
@@ -545,4 +554,40 @@ body { display: flex; flex-direction: column; }
   .player-cover { width: 38px; height: 38px; }
   .ctrl-grp { gap: 0; }
   .np-time { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLET  768px – 1023px
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --sidebar-w: 250px;
+    --topbar-h:  50px;
+  }
+
+  .radio-header { height: 104px; padding: 0 18px; }
+  .rh-tag { font-size: 11px; }
+
+  .panel-cover-ph,
+  .panel-cover-img { width: 72px; height: 72px; }
+
+  .vol-slider { width: 60px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WIDE  1440px+
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 1440px) {
+  :root {
+    --sidebar-w: 320px;
+  }
+
+  .radio-header { height: 144px; padding: 0 32px; }
+  .rh-name { font-size: 52px; }
+
+  .vol-slider { width: 88px; }
+
+  .panel-hdr { padding: 20px 22px 18px; }
+  .panel-cover-ph,
+  .panel-cover-img { width: 96px; height: 96px; }
 }

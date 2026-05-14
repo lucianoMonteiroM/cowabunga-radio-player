@@ -62,7 +62,9 @@ function isAudio(f) {
   const e=(f.name||'').split('.').pop().toLowerCase(), fm=(f.format||'').toLowerCase();
   return /^(mp3|ogg|opus|flac|wav|m4a|aac)$/.test(e) || /mp3|vbr|ogg|vorbis|flac|wav/i.test(fm);
 }
-const isMobile = () => window.innerWidth <= 768;
+const isMobile  = () => window.innerWidth <= 767;
+const isTablet  = () => window.innerWidth >= 768 && window.innerWidth <= 1023;
+const isDesktop = () => window.innerWidth >= 1024;
 
 /* ── Sidebar drawer (mobile) ─────────────────────────────── */
 function openSidebar()  {
@@ -292,7 +294,7 @@ function renderSidebar() {
       return `
         <div class="album-item${ri===albumIdx?' active':''}" data-real="${ri}" tabindex="0" role="button">
           <div class="album-thumb-ph">♪</div>
-          <img class="album-thumb" src="${coverURL(a.identifier)}" alt=""
+          <img class="album-thumb" loading="lazy" src="${coverURL(a.identifier)}" alt=""
                onerror="this.style.display='none';this.previousElementSibling.style.display='flex'"
                onload="this.previousElementSibling.style.display='none'">
           <div class="album-info">
@@ -505,6 +507,15 @@ document.addEventListener('keydown',e=>{
     ArrowDown:  ()=>{e.preventDefault();nextTrack();},
     KeyE:       ()=>{e.preventDefault();toggleEqPanel();},
   }[e.code]||Function)();
+});
+
+/* ── Resize ──────────────────────────────────────────────── */
+let _lastMobile = isMobile();
+window.addEventListener('resize', () => {
+  const nowMobile = isMobile();
+  if (nowMobile && eqOpen) toggleEqPanel();
+  if (!nowMobile && _lastMobile) closeSidebar();
+  _lastMobile = nowMobile;
 });
 
 /* ── Go ──────────────────────────────────────────────────── */
