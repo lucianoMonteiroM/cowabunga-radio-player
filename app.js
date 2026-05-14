@@ -518,5 +518,35 @@ window.addEventListener('resize', () => {
   _lastMobile = nowMobile;
 });
 
+/* ── Lib-title marquee (mobile only) ────────────────────── */
+(function(){
+  const el = document.getElementById('lib-title');
+  if (!el) return;
+  let timer = null;
+
+  function runSlide() {
+    if (!isMobile()) return;
+    const overflow = el.scrollWidth - el.clientWidth;
+    if (overflow <= 2) return;
+    el.style.setProperty('--lib-name-slide-dist', `-${overflow}px`);
+    el.classList.remove('sliding');
+    void el.offsetWidth;
+    el.classList.add('sliding');
+  }
+
+  function schedule() {
+    clearInterval(timer);
+    timer = setInterval(runSlide, 3000);
+  }
+
+  schedule();
+  window.addEventListener('resize', () => {
+    schedule();
+    if (!isMobile()) el.classList.remove('sliding');
+  });
+
+  new MutationObserver(schedule).observe(el, { childList: true, characterData: true, subtree: true });
+})();
+
 /* ── Go ──────────────────────────────────────────────────── */
 init();

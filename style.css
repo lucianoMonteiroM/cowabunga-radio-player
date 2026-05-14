@@ -163,6 +163,15 @@ body { display: flex; flex-direction: column; }
 .logo svg { width: 14px; height: 14px; fill: #0a0908; pointer-events: none; }
 .lib-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .lib-name { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@keyframes lib-name-slide {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(var(--lib-name-slide-dist, -50%)); }
+}
+.lib-name.sliding {
+  text-overflow: clip;
+  animation: lib-name-slide 2s ease-in-out forwards;
+}
 .lib-id   { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-lo); }
 .ext-link {
   font-size: 11px; color: var(--accent); text-decoration: none; opacity: .8;
