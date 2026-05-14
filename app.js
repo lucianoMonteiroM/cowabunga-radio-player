@@ -249,6 +249,37 @@ function groupByArtist(albums) {
   return Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0],undefined,{sensitivity:'base'}));
 }
 
+/* ── Preload group covers before opening ─────────────────── */
+function preloadAndOpen(groupEl, artist) {
+  const items = Array.from(groupEl.querySelectorAll('.album-item'));
+  if (!items.length) { expanded[artist]=true; groupEl.classList.add('open'); return; }
+
+  const hdr = groupEl.querySelector('.artist-hdr');
+  hdr.style.opacity = '0.45';
+
+  let done = 0, opened = false;
+  const total = items.length;
+
+  function open() {
+    if (opened) return;
+    opened = true;
+    clearTimeout(timer);
+    hdr.style.opacity = '';
+    expanded[artist] = true;
+    groupEl.classList.add('open');
+  }
+
+  const timer = setTimeout(open, 1500);
+
+  items.forEach(item => {
+    const ri = +item.dataset.real;
+    if (isNaN(ri) || ri < 0 || ri >= allAlbums.length) { if (++done >= total) open(); return; }
+    const img = new Image();
+    img.onload = img.onerror = () => { if (++done >= total) open(); };
+    img.src = coverURL(allAlbums[ri].identifier);
+  });
+}
+
 /* ── Render sidebar ──────────────────────────────────────── */
 function renderSidebar() {
   const groups=groupByArtist(filtered);
@@ -261,7 +292,7 @@ function renderSidebar() {
       return `
         <div class="album-item${ri===albumIdx?' active':''}" data-real="${ri}" tabindex="0" role="button">
           <div class="album-thumb-ph">♪</div>
-          <img class="album-thumb" loading="lazy" src="${coverURL(a.identifier)}" alt=""
+          <img class="album-thumb" src="${coverURL(a.identifier)}" alt=""
                onerror="this.style.display='none';this.previousElementSibling.style.display='flex'"
                onload="this.previousElementSibling.style.display='none'">
           <div class="album-info">
@@ -282,7 +313,12 @@ function renderSidebar() {
   }).join('');
   $('artist-list').onclick=e=>{
     const hdr=e.target.closest('.artist-hdr');
-    if(hdr){const g=hdr.closest('.artist-group'),k=g.dataset.artist;expanded[k]=g.classList.toggle('open');return;}
+    if(hdr){
+      const g=hdr.closest('.artist-group'),k=g.dataset.artist;
+      if(g.classList.contains('open')){ expanded[k]=false; g.classList.remove('open'); }
+      else { preloadAndOpen(g,k); }
+      return;
+    }
     const item=e.target.closest('.album-item');
     if(item) selectAlbum(+item.dataset.real);
   };
