@@ -215,7 +215,6 @@ async function init() {
         }catch(pe){console.warn('[pagination]',pe);break;}
       }
     }
-    $('lib-title-text').textContent=meta.title||IDENTIFIER;
     document.title=`Archive Player · ${meta.title||IDENTIFIER}`;
     if(docs.length>0){
       allAlbums=docs.map(d=>({
@@ -449,9 +448,10 @@ function playTrack(idx) {
   refreshRow(prev); refreshRow(idx);
   $(`tr-${idx}`)?.scrollIntoView({block:'nearest',behavior:'smooth'});
   const track=tracks[idx], album=allAlbums[albumIdx];
+  showLoading();
   audio.src=dlURL(album.identifier,track.name);
   audio.volume=parseFloat($('vol-slider').value);
-  audio.play().catch(err=>console.warn('[player]',err));
+  audio.play().catch(err=>{console.warn('[player]',err);hideLoading();});
   $('np-track').textContent=getTrackTitle(track);
   $('np-album').textContent=album.title;
   if(eqOpen&&analyserNode&&!animFrameId) drawSpectrum();
@@ -471,9 +471,16 @@ function updateButtons() {
   $('btn-next').disabled=tracks.length===0||trackIdx>=tracks.length-1;
 }
 
+/* ── Loading overlay ─────────────────────────────────────── */
+function showLoading() { $('loading-overlay').classList.add('vis'); }
+function hideLoading() { $('loading-overlay').classList.remove('vis'); }
+
 /* ── Audio events ────────────────────────────────────────── */
-audio.addEventListener('play', ()=>{$('icon-play').style.display='none';$('icon-pause').style.display='';});
-audio.addEventListener('pause',()=>{$('icon-play').style.display='';   $('icon-pause').style.display='none';});
+audio.addEventListener('play',    ()=>{$('icon-play').style.display='none';$('icon-pause').style.display='';});
+audio.addEventListener('pause',   ()=>{$('icon-play').style.display='';   $('icon-pause').style.display='none';});
+audio.addEventListener('playing', hideLoading);
+audio.addEventListener('waiting', showLoading);
+audio.addEventListener('error',   hideLoading);
 audio.addEventListener('timeupdate',()=>{
   if(!audio.duration) return;
   const pct=(audio.currentTime/audio.duration*100).toFixed(2)+'%';
