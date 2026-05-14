@@ -166,10 +166,10 @@ body { display: flex; flex-direction: column; }
 
 @keyframes lib-name-slide {
   0%   { transform: translateX(0); }
-  100% { transform: translateX(var(--lib-name-slide-dist, -50%)); }
+  100% { transform: translateX(var(--lib-name-slide-dist, 0px)); }
 }
-.lib-name.sliding {
-  text-overflow: clip;
+#lib-title-text { display: inline-block; }
+#lib-title-text.sliding {
   animation: lib-name-slide 2s ease-in-out forwards;
 }
 .lib-id   { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-lo); }

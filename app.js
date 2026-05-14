@@ -215,7 +215,7 @@ async function init() {
         }catch(pe){console.warn('[pagination]',pe);break;}
       }
     }
-    $('lib-title').textContent=meta.title||IDENTIFIER;
+    $('lib-title-text').textContent=meta.title||IDENTIFIER;
     document.title=`Archive Player · ${meta.title||IDENTIFIER}`;
     if(docs.length>0){
       allAlbums=docs.map(d=>({
@@ -520,18 +520,19 @@ window.addEventListener('resize', () => {
 
 /* ── Lib-title marquee (mobile only) ────────────────────── */
 (function(){
-  const el = document.getElementById('lib-title');
-  if (!el) return;
+  const outer = document.getElementById('lib-title');
+  const inner = document.getElementById('lib-title-text');
+  if (!outer || !inner) return;
   let timer = null;
 
   function runSlide() {
     if (!isMobile()) return;
-    const overflow = el.scrollWidth - el.clientWidth;
+    const overflow = inner.scrollWidth - outer.clientWidth;
     if (overflow <= 2) return;
-    el.style.setProperty('--lib-name-slide-dist', `-${overflow}px`);
-    el.classList.remove('sliding');
-    void el.offsetWidth;
-    el.classList.add('sliding');
+    outer.style.setProperty('--lib-name-slide-dist', `-${overflow}px`);
+    inner.classList.remove('sliding');
+    void inner.offsetWidth;
+    inner.classList.add('sliding');
   }
 
   function schedule() {
@@ -542,10 +543,10 @@ window.addEventListener('resize', () => {
   schedule();
   window.addEventListener('resize', () => {
     schedule();
-    if (!isMobile()) el.classList.remove('sliding');
+    if (!isMobile()) inner.classList.remove('sliding');
   });
 
-  new MutationObserver(schedule).observe(el, { childList: true, characterData: true, subtree: true });
+  new MutationObserver(schedule).observe(inner, { childList: true, characterData: true, subtree: true });
 })();
 
 /* ── Go ──────────────────────────────────────────────────── */
